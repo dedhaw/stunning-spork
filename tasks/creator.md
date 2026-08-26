@@ -95,7 +95,7 @@ After the user approves task creation and parallel execution, run:
 make tasks-run
 ```
 
-This runs `tasks/scripts/run-task-agents.sh`, which starts one background `codex exec` process for each incomplete task without an existing claim, including the finalizer, with approximately one second between launches. Set `TASK_AGENT_DELAY` to override the delay when needed. Each process receives its task path and must perform the atomic claim itself. A task that is already complete or claimed is skipped, so rerunning the launcher does not intentionally duplicate active work.
+This runs `tasks/scripts/run-task-agents.sh`, which opens one macOS Terminal session running a `codex exec` process for each incomplete task without an existing claim, including the finalizer, with approximately one second between launches. Set `TASK_AGENT_DELAY` to override the delay when needed. Each process receives its task path and must perform the atomic claim itself. A task that is already complete or claimed is skipped, so rerunning the launcher does not intentionally duplicate active work.
 
 Output is stored under temporary coordination paths:
 
@@ -103,6 +103,8 @@ Output is stored under temporary coordination paths:
 - `tasks/runner/TASK-NNN-*.pid` contains each process ID.
 
 Inspect logs and claim records to monitor progress. Stop a process only after confirming its PID from the matching PID file. The launcher never deletes tasks or claims.
+
+This visible-terminal launcher requires macOS Terminal automation. Tests may set `TERMINAL_LAUNCHER` to an executable adapter with the worker script, task file, log file, and PID file as arguments.
 
 ## Final task for a task group
 

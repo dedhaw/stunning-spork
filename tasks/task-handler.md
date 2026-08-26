@@ -14,7 +14,7 @@ Before a clear `yes`, `approve`, or `proceed`, do not create task files, modify 
 
 ## Parallel background agents
 
-After explicit approval, `make tasks-run` runs `tasks/scripts/run-task-agents.sh` and may launch one background `codex exec` process per incomplete task, spacing process creation by approximately one second (`TASK_AGENT_DELAY` overrides the default). These processes are coordinated by task claims, not launch order:
+After explicit approval, `make tasks-run` runs `tasks/scripts/run-task-agents.sh` and opens one macOS Terminal session per incomplete task, spacing terminal creation by approximately one second (`TASK_AGENT_DELAY` overrides the default). These processes are coordinated by task claims, not launch order:
 
 - The first process whose atomic claim-directory creation succeeds owns the task.
 - A process that finds an existing claim exits without editing.
@@ -22,7 +22,7 @@ After explicit approval, `make tasks-run` runs `tasks/scripts/run-task-agents.sh
 - The finalizer may launch immediately and must wait for all dependencies.
 - Each process writes output to its task log and records its PID under `tasks/runner/`.
 
-Rerunning the launcher is safe for complete or already-claimed tasks because they are skipped. Do not manually edit another agent’s claim or kill a process without verifying the PID and owner record.
+Rerunning the launcher is safe for complete or already-claimed tasks because they are skipped. Visible-terminal launching requires macOS Terminal automation. Do not manually edit another agent’s claim or kill a process without verifying the PID and owner record.
 
 ## 1. Inspect before acting
 

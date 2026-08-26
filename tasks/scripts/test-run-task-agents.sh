@@ -30,6 +30,7 @@ cat >"$fixture_dir/tasks/TASK-004-claimed.md" <<'EOF'
 EOF
 
 fake_codex="$fixture_dir/fake-codex"
+fake_terminal="$fixture_dir/fake-terminal"
 record_file="$fixture_dir/invocations"
 cat >"$fake_codex" <<'EOF'
 #!/usr/bin/env bash
@@ -37,18 +38,32 @@ printf '%s %s\n' "$(date +%s)" "$*" >>"$FAKE_CODEX_RECORD"
 exit 0
 EOF
 chmod +x "$fake_codex"
+cat >"$fake_terminal" <<'EOF'
+#!/usr/bin/env bash
+printf '%s %s\n' "$(date +%s)" "$2" >>"$FAKE_TERMINAL_RECORD"
+"$1" "$2" "$3" "$4" &
+exit 0
+EOF
+chmod +x "$fake_terminal"
 
 TASK_DIR="$fixture_dir/tasks" \
 TASK_LOG_DIR="$fixture_dir/logs" \
 TASK_RUN_DIR="$fixture_dir/runner" \
 CODEX_BIN="$fake_codex" \
 FAKE_CODEX_RECORD="$record_file" \
+TERMINAL_LAUNCHER="$fake_terminal" \
+FAKE_TERMINAL_RECORD="$fixture_dir/terminal-launches" \
 TASK_AGENT_DELAY=1 \
   "$repo_dir/tasks/scripts/run-task-agents.sh" >"$fixture_dir/launcher-output"
 
+for _ in {1..30}; do
+  [[ -f "$fixture_dir/runner/TASK-001-first.pid" && -f "$fixture_dir/runner/TASK-002-second.pid" ]] && break
+  sleep 0.1
+done
+
 [[ "$(wc -l <"$record_file" | tr -d ' ')" == 2 ]]
-first_launch="$(sed -n '1s/ .*//p' "$record_file")"
-second_launch="$(sed -n '2s/ .*//p' "$record_file")"
+first_launch="$(sed -n '1s/ .*//p' "$fixture_dir/terminal-launches")"
+second_launch="$(sed -n '2s/ .*//p' "$fixture_dir/terminal-launches")"
 (( second_launch - first_launch >= 1 ))
 grep -Fq 'tasks/TASK-001-first.md' "$record_file"
 grep -Fq 'tasks/TASK-002-second.md' "$record_file"
