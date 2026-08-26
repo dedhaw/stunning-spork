@@ -35,6 +35,8 @@ New tasks must always begin with unchecked completion boxes. Never pre-check a t
 
 Add the task to `tasks/README.md`, including its rank and dependencies. Keep the dependency graph accurate.
 
+When creating a temporary task group, create `tasks/TASK-999-finalize.md` in the same operation. Set its dependencies to every implementation task, including a single-task group, and add it to the board with the lowest execution priority. Do not wait for implementation to finish before creating the finalizer.
+
 ## Claims and ownership
 
 Agents must claim a task before modifying implementation files. Claims use an atomic task-specific directory:
@@ -43,7 +45,9 @@ Agents must claim a task before modifying implementation files. Claims use an at
 tasks/claims/TASK-NNN/
 ```
 
-The claim contains `owner.md` with a unique agent ID, task ID, hostname/terminal when available, start time, last heartbeat, and status (`claimed`, `working`, `waiting`, or `complete`). If the claim already exists, the agent must not modify that task.
+The claim contains `owner.md` with a unique agent ID, task ID, hostname/terminal when available, start time, last heartbeat, and status (`claimed`, `working`, `waiting`, or `complete`). The agent ID must be unique to the Codex invocation; hostname and terminal are descriptive metadata only and cannot establish ownership.
+
+If the claim directory already exists, the agent must read `owner.md`. It may continue only when the recorded unique agent ID exactly matches its own invocation ID. Otherwise it must leave the task untouched and inspect another task. Never infer ownership from matching hostname, terminal, or working directory.
 
 Agents update their heartbeat while working or waiting. Use a 30-minute stale-claim threshold only after verifying that the owner is no longer active; never take over an active claim. A completed agent checks its own task marker first, marks its claim complete, and releases only its own claim.
 
@@ -51,13 +55,15 @@ The task board and claims are temporary coordination artifacts and remain covere
 
 ## Startup and planner behavior
 
-Every repository should keep `tasks/init.md` as the startup protocol and root `AGENTS.md` as the automatic entry point. An unassigned agent must inspect the task board, select the lowest-priority available task, atomically claim it, and implement it. If no task is available, it enters planner mode.
+Every repository should keep `tasks/init.md` as the startup protocol and root `AGENTS.md` as the automatic entry point. An unassigned agent must inspect the task board, reconcile task status from task checkboxes and claims, select the lowest-priority available task, atomically claim it, and implement it.
+
+After all non-finalizer tasks contain the exact checked completion marker, the agent must select the finalizer before entering planner mode. A task-group creator must create the finalizer at the same time as the implementation tasks so the one-task case is covered.
 
 Planner mode is plan-only by default: it can inspect and propose work, but it does not create tasks or modify source files without explicit user approval. The finalizer is the only task allowed to remove generated task-board files.
 
 ## Final task for a task group
 
-Every task group may include one final cleanup task, created only after all implementation tasks are known:
+Every temporary task group must include exactly one final cleanup task. Create it when the group is created, after the implementation task IDs are known; do not wait until implementation tasks are complete:
 
 ```text
 tasks/TASK-999-finalize.md
@@ -78,6 +84,7 @@ The final task must:
 - Delete only the generated task-group files after all checks pass:
   - `tasks/TASK-*.md`
   - `tasks/README.md`
+- Delete only the claim directories belonging to this task group after verifying their task IDs; never delete another active agent’s claim.
 - Preserve `tasks/creator.md` so it can be reused for a future task group.
 - Check its own final cleanup marker last, immediately before or after removing the other task files.
 
@@ -92,7 +99,9 @@ The final task should use a completion checklist like:
 - [ ] Final cleanup complete
 ```
 
-The final task is optional for an ongoing project. Use it only when the task files are temporary implementation artifacts and no longer need to serve as project documentation.
+For a permanent project task board, omit cleanup only when the user explicitly requests that task files be retained as documentation. Otherwise the finalizer is mandatory, including when the group contains only one implementation task.
+
+Before cleanup, reconcile `tasks/README.md`: every completed implementation task must be marked `Complete`, and stale values such as `Available` must not override a checked task marker.
 
 ## Task file template
 
@@ -142,9 +151,9 @@ Do not begin cleanup until every dependency has the exact checked marker:
 
 If any dependency is incomplete, do not stop and do not report a blocker. Poll every 15 seconds in a persistent tool session until all dependencies are complete. Do not delete any files while waiting.
 
-After all dependencies are complete, run the full test suite. If tests fail, fix only the failure within scope or stop without deleting task files.
+After all dependencies are complete, update their board rows to `Complete`, mark this claim as `working`, and run the full test suite. If tests fail, do not delete task files; continue inspecting or waiting as appropriate.
 
-Before deletion, list and verify the explicit generated task files. Delete `tasks/TASK-*.md` and `tasks/README.md` only. Preserve `tasks/creator.md`. Never delete the repository, workspace, or the entire `tasks/` directory.
+Before deletion, list and verify the explicit generated task files and claim directories. Delete `tasks/TASK-*.md`, `tasks/README.md`, and only the verified task-group claim directories. Preserve `tasks/creator.md`. Never delete the repository, workspace, or the entire `tasks/` directory.
 
 ## Completion checklist
 
@@ -237,6 +246,8 @@ After implementation:
 5. Check `Documentation updated if needed` after applicable docs are current.
 6. Check `Done with implementation and testing` last.
 7. Report changed files, tests run, and any remaining limitations.
+
+After checking an implementation task’s final marker, re-read the board. If all implementation tasks are complete, claim and run the finalizer in the same session when possible; do not stop merely because the implementation task itself is complete.
 
 ## Parallel execution
 
