@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from io import BytesIO
-from math import hypot, sqrt
+from math import hypot, isfinite
 from typing import Protocol
 
 from PIL import Image
@@ -65,12 +65,9 @@ class MediaPipePoseAdapter:
     def detect(self, image_bytes: bytes) -> list[Landmark]:
         try:
             import mediapipe as mp
-
-            image = Image.open(BytesIO(image_bytes)).convert("RGB")
-            mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=image.tobytes())
-            # MediaPipe requires an ndarray-like shape; use its supported image helper.
             import numpy as np
 
+            image = Image.open(BytesIO(image_bytes)).convert("RGB")
             mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=np.asarray(image))
             result = self._load().detect(mp_image)
         except MeasurementError:
@@ -81,7 +78,15 @@ class MediaPipePoseAdapter:
             raise MeasurementError("no_person", "No person was detected.", ["no_person"])
         if len(result.pose_landmarks) > 1:
             raise MeasurementError("multiple_people", "Exactly one person must be visible.", ["multiple_people"])
-        return [Landmark(p.x, p.y, min(p.visibility, p.presence)) for p in result.pose_landmarks[0]]
+        landmarks = []
+        for point in result.pose_landmarks[0]:
+            # Visibility and presence are both useful signals. MediaPipe normally
+            # supplies both, but treating a missing value as zero is safer than
+            # allowing an invalid landmark into calibration.
+            visibility = getattr(point, "visibility", 0.0) or 0.0
+            presence = getattr(point, "presence", 0.0) or 0.0
+            landmarks.append(Landmark(point.x, point.y, min(visibility, presence)))
+        return landmarks
 
 
 def _indices(arm: str) -> tuple[int, int, int]:
@@ -90,7 +95,7 @@ def _indices(arm: str) -> tuple[int, int, int]:
 
 def _pixel_height(points: list[Landmark], width: int, height: int) -> float:
     # Nose to the lowest ankle/foot is robust enough for the guided full-body pose.
-    y_values = [points[0].y, points[27].y, points[28].y, points[31].y, points[32].y]
+    y_values = [points[i].y for i in (0, 27, 28, 31, 32)]
     return (max(y_values) - min(y_values)) * height
 
 
@@ -103,7 +108,10 @@ def _arm_pixels(points: list[Landmark], arm: str, width: int, height: int) -> fl
     def distance(a: Landmark, b: Landmark) -> float:
         return hypot((a.x - b.x) * width, (a.y - b.y) * height)
 
-    return distance(points[shoulder], points[elbow]) + distance(points[elbow], points[wrist])
+    length = distance(points[shoulder], points[elbow]) + distance(points[elbow], points[wrist])
+    if not isfinite(length) or length <= 0:
+        raise MeasurementError("invalid_pose", "The selected arm landmarks do not form a measurable chain.")
+    return length
 
 
 def measure_arm_length(
@@ -113,12 +121,13 @@ def measure_arm_length(
     arm: str,
     adapter: PoseAdapter,
 ):
-    if height_cm <= 0 or height_cm > 300:
+    if not isfinite(height_cm) or height_cm < 1 or height_cm > 300:
         raise MeasurementError("invalid_height", "height_cm must be between 1 and 300.")
     if arm not in {"left", "right"}:
         raise MeasurementError("invalid_arm", "arm must be left or right.")
 
     measurements: list[float] = []
+    body_heights: list[float] = []
     confidences: list[float] = []
     for image_bytes in (front_bytes, side_bytes):
         try:
@@ -129,14 +138,31 @@ def measure_arm_length(
         points = adapter.detect(image_bytes)
         if len(points) < 33:
             raise MeasurementError("incomplete_pose", "Pose model returned incomplete landmarks.")
+        if any(
+            not all(isfinite(value) for value in (point.x, point.y, point.confidence))
+            or point.confidence < 0
+            or point.confidence > 1
+            for point in points[:33]
+        ):
+            raise MeasurementError("invalid_pose", "Pose model returned invalid landmarks.")
         body_height = _pixel_height(points, width, height)
+        if not isfinite(body_height) or body_height <= 0:
+            raise MeasurementError("invalid_pose", "Unable to calibrate body height from landmarks.")
         if body_height < height * 0.25:
             raise MeasurementError("body_too_small", "The full body must occupy more of the frame.", ["body_too_small"])
-        if min(points[i].confidence for i in (0, 27, 28)) < 0.35:
+        if min(points[i].confidence for i in (0, 27, 28, 31, 32)) < 0.35:
             raise MeasurementError("low_body_confidence", "Head and feet must be visible.", ["low_body_confidence"])
         scale = height_cm / body_height
         measurements.append(_arm_pixels(points, arm, width, height) * scale)
+        body_heights.append(body_height)
         confidences.append(sum(points[i].confidence for i in _indices(arm)) / 3)
+
+    if abs(body_heights[0] - body_heights[1]) / max(body_heights) > 0.15:
+        raise MeasurementError(
+            "inconsistent_scale",
+            "Front and side views have inconsistent body scale.",
+            ["inconsistent_scale"],
+        )
 
     value = sum(measurements) / len(measurements)
     confidence = max(0.0, min(1.0, sum(confidences) / len(confidences)))

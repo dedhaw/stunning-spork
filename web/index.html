@@ -8,17 +8,40 @@
 </head>
 <body>
   <main>
-    <h1>Arm measurement</h1>
-    <p>Keep the camera fixed. Capture your full body from the front, then rotate 90° for the side view.</p>
-    <label>Height (cm) <input id="height" type="number" min="1" max="300" required></label>
-    <label>Arm <select id="arm"><option value="left">Left</option><option value="right">Right</option></select></label>
-    <video id="preview" autoplay playsinline muted></video>
-    <p id="instruction">Place your device on a stable surface, keep it level, and fit your head and feet in the frame.</p>
-    <button id="start">Start camera</button>
-    <button id="capture" disabled>Capture front</button>
-    <button id="submit" disabled>Submit measurement</button>
+    <header>
+      <p class="eyebrow">Guided capture</p>
+      <h1>Measure your arm</h1>
+      <p>It takes two photos. Keep your device fixed, fit your whole body in frame, and follow the prompts.</p>
+    </header>
+    <section class="card" aria-labelledby="details-heading">
+      <h2 id="details-heading">Your details</h2>
+      <div class="fields">
+        <label for="height">Height (cm) <input id="height" type="number" min="1" max="300" step="0.1" inputmode="decimal" required></label>
+        <label for="arm">Arm to measure <select id="arm"><option value="left">Left</option><option value="right">Right</option></select></label>
+      </div>
+    </section>
+    <section class="card capture-card" aria-labelledby="capture-heading">
+      <div class="capture-heading"><div><p class="eyebrow" id="stage">Step 1 of 3</p><h2 id="capture-heading">Set up your camera</h2></div><span id="camera-status" class="status-pill">Not started</span></div>
+      <div class="video-wrap"><video id="preview" autoplay playsinline muted aria-label="Live camera preview"></video><div id="framing-guide" class="framing-guide" aria-hidden="true"></div></div>
+      <p id="instruction">Place your device on a stable surface at about waist or chest height. Keep it level and stand far enough away for your head and feet to fit.</p>
+      <div class="actions"><button id="start" type="button">Allow camera</button><button id="capture" type="button" disabled>Capture front</button><button id="submit" type="button" disabled>Submit measurement</button></div>
+      <p id="status" role="status" aria-live="polite"></p>
+    </section>
+    <section id="result" class="card result" aria-labelledby="result-heading" hidden>
+      <p class="eyebrow">Measurement result</p>
+      <h2 id="result-heading"><span id="result-value">—</span> cm</h2>
+      <p id="result-summary"></p>
+      <dl class="result-details">
+        <div><dt>Quality</dt><dd id="result-quality">—</dd></div>
+        <div><dt>Quality flags</dt><dd id="result-flags">None</dd></div>
+        <div><dt>Request ID</dt><dd id="result-request-id">—</dd></div>
+      </dl>
+    </section>
+    <section id="captures" class="card captures" aria-labelledby="captures-heading" hidden>
+      <h2 id="captures-heading">Captured views</h2>
+      <div class="capture-grid"><figure id="front-capture" hidden><img alt="Front view preview"><figcaption>Front view <button type="button" data-retake="front">Retake</button></figcaption></figure><figure id="side-capture" hidden><img alt="Side view preview"><figcaption>Side view <button type="button" data-retake="side">Retake</button></figcaption></figure></div>
+    </section>
     <canvas id="canvas" hidden></canvas>
-    <p id="status" role="status"></p>
   </main>
   <script src="/static/app.js"></script>
 </body>

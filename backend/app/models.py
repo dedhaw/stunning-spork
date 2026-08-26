@@ -1,6 +1,5 @@
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any
 from uuid import UUID
 
 from pydantic import BaseModel, Field
@@ -11,8 +10,15 @@ class Arm(str, Enum):
     right = "right"
 
 
+class ErrorDetail(BaseModel):
+    code: str
+    message: str
+    quality_flags: list[str] = Field(default_factory=list)
+
+
 class MeasurementResponse(BaseModel):
     measurement_id: UUID
+    client_request_id: str
     measurement_type: str = "shoulder_to_wrist"
     value_cm: float = Field(gt=0)
     confidence: float = Field(ge=0, le=1)
@@ -24,9 +30,7 @@ class MeasurementResponse(BaseModel):
 
 
 class ErrorResponse(BaseModel):
-    detail: str
-    code: str
-    quality_flags: list[str] = []
+    detail: ErrorDetail
 
 
 class ProcessingResult(BaseModel):
@@ -36,4 +40,3 @@ class ProcessingResult(BaseModel):
     quality_flags: list[str]
     model_version: str
     algorithm_version: str
-
