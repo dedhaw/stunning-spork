@@ -39,6 +39,14 @@ elif ! command -v "$TERMINAL_AUTOMATION_BIN" >/dev/null 2>&1; then
   exit 1
 fi
 
+is_complete_task() {
+  awk '
+    /^```/ { in_fence = !in_fence; next }
+    !in_fence && /^[[:space:]]*-[[:space:]]\[x\][[:space:]]Done with implementation and testing[[:space:]]*$/ { found = 1 }
+    END { exit(found ? 0 : 1) }
+  ' "$1"
+}
+
 started=0
 skipped=0
 
@@ -48,7 +56,7 @@ for task_file in "${task_files[@]}"; do
   log_file="$LOG_DIR/$task_name.log"
   pid_file="$RUN_DIR/$task_name.pid"
 
-  if grep -Fq -- '- [x] Done with implementation and testing' "$task_file"; then
+  if is_complete_task "$task_file"; then
     echo "$task_name: complete; skipped"
     skipped=$((skipped + 1))
     continue
@@ -72,7 +80,11 @@ for task_file in "${task_files[@]}"; do
       "$repo_dir" "$worker_script" "$task_file" "$log_file" "$pid_file"
     terminal_command=${terminal_command//\\/\\\\}
     terminal_command=${terminal_command//\"/\\\"}
-    "$TERMINAL_AUTOMATION_BIN" -e "tell application \"Terminal\" to do script \"$terminal_command\""
+    "$TERMINAL_AUTOMATION_BIN" \
+      -e 'tell application id "com.apple.Terminal"' \
+      -e 'activate' \
+      -e "do script \"$terminal_command\"" \
+      -e 'end tell'
   fi
   started=$((started + 1))
 done

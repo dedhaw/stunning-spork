@@ -28,9 +28,21 @@ cat >"$fixture_dir/tasks/TASK-004-claimed.md" <<'EOF'
 
 - [ ] Done with implementation and testing
 EOF
+cat >"$fixture_dir/tasks/TASK-005-finalizer-example.md" <<'EOF'
+# TASK-005
+
+The final marker is documented here:
+
+```markdown
+- [x] Done with implementation and testing
+```
+
+- [ ] Done with implementation and testing
+EOF
 
 fake_codex="$fixture_dir/fake-codex"
 fake_terminal="$fixture_dir/fake-terminal"
+fake_osascript="$fixture_dir/fake-osascript"
 record_file="$fixture_dir/invocations"
 cat >"$fake_codex" <<'EOF'
 #!/usr/bin/env bash
@@ -45,6 +57,12 @@ printf '%s %s\n' "$(date +%s)" "$2" >>"$FAKE_TERMINAL_RECORD"
 exit 0
 EOF
 chmod +x "$fake_terminal"
+cat >"$fake_osascript" <<'EOF'
+#!/usr/bin/env bash
+printf '%s\n' "$@" >>"$FAKE_OSASCRIPT_RECORD"
+exit 0
+EOF
+chmod +x "$fake_osascript"
 
 TASK_DIR="$fixture_dir/tasks" \
 TASK_LOG_DIR="$fixture_dir/logs" \
@@ -57,21 +75,33 @@ TASK_AGENT_DELAY=1 \
   "$repo_dir/tasks/scripts/run-task-agents.sh" >"$fixture_dir/launcher-output"
 
 for _ in {1..30}; do
-  [[ -f "$fixture_dir/runner/TASK-001-first.pid" && -f "$fixture_dir/runner/TASK-002-second.pid" ]] && break
+  [[ -f "$record_file" && "$(wc -l <"$record_file" | tr -d ' ')" == 3 ]] && break
   sleep 0.1
 done
 
-[[ "$(wc -l <"$record_file" | tr -d ' ')" == 2 ]]
+[[ "$(wc -l <"$record_file" | tr -d ' ')" == 3 ]]
 first_launch="$(sed -n '1s/ .*//p' "$fixture_dir/terminal-launches")"
 second_launch="$(sed -n '2s/ .*//p' "$fixture_dir/terminal-launches")"
 (( second_launch - first_launch >= 1 ))
 grep -Fq 'tasks/TASK-001-first.md' "$record_file"
 grep -Fq 'tasks/TASK-002-second.md' "$record_file"
+grep -Fq 'tasks/TASK-005-finalizer-example.md' "$record_file"
 [[ -f "$fixture_dir/logs/TASK-001-first.log" ]]
 [[ -f "$fixture_dir/logs/TASK-002-second.log" ]]
 [[ -f "$fixture_dir/runner/TASK-001-first.pid" ]]
 [[ -f "$fixture_dir/runner/TASK-002-second.pid" ]]
 grep -Fq 'TASK-003-complete: complete; skipped' "$fixture_dir/launcher-output"
 grep -Fq 'TASK-004-claimed: already claimed; skipped' "$fixture_dir/launcher-output"
+
+TASK_DIR="$fixture_dir/tasks" \
+TASK_LOG_DIR="$fixture_dir/apple-logs" \
+TASK_RUN_DIR="$fixture_dir/apple-runner" \
+TERMINAL_AUTOMATION_BIN="$fake_osascript" \
+FAKE_OSASCRIPT_RECORD="$fixture_dir/applescript-arguments" \
+TASK_AGENT_DELAY=0 \
+  "$repo_dir/tasks/scripts/run-task-agents.sh" >"$fixture_dir/apple-launcher-output"
+[[ "$(grep -Fc 'tell application id "com.apple.Terminal"' "$fixture_dir/applescript-arguments")" == 3 ]]
+[[ "$(grep -Fc 'do script' "$fixture_dir/applescript-arguments")" == 3 ]]
+[[ "$(grep -Fc 'end tell' "$fixture_dir/applescript-arguments")" == 3 ]]
 
 echo "task-agent launcher test passed"
