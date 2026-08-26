@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Arm measurement</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <main>
+    <h1>Arm measurement</h1>
+    <p>Keep the camera fixed. Capture your full body from the front, then rotate 90° for the side view.</p>
+    <label>Height (cm) <input id="height" type="number" min="1" max="300" required></label>
+    <label>Arm <select id="arm"><option value="left">Left</option><option value="right">Right</option></select></label>
+    <video id="preview" autoplay playsinline muted></video>
+    <p id="instruction">Place your device on a stable surface, keep it level, and fit your head and feet in the frame.</p>
+    <button id="start">Start camera</button>
+    <button id="capture" disabled>Capture front</button>
+    <button id="submit" disabled>Submit measurement</button>
+    <canvas id="canvas" hidden></canvas>
+    <p id="status" role="status"></p>
+  </main>
+  <script src="/static/app.js"></script>
+</body>
+</html>
