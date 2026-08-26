@@ -7,9 +7,11 @@ Web-first arm measurement prototype. The initial product measures estimated shou
 ```bash
 make setup
 make run
+# Stop the local frontend and backend services.
+make kill
 ```
 
-Open http://localhost:8000. `make setup` creates `.venv` and installs `backend/requirements.txt`. `make run` starts FastAPI and serves the webpage with Uvicorn. Docker Compose is deferred until additional services are needed.
+Open http://localhost:5173. `make setup` creates `.venv` and installs `backend/requirements.txt`. `make run` opens separate terminal sessions for the Vite frontend at port 5173 and FastAPI at port 8000, with frontend API requests proxied to FastAPI. The launcher defaults to the host terminal (`TERMINAL=auto`); select another supported launcher with `TERMINAL=cmux make run`, `TERMINAL=vscode make run`, or `TERMINAL=windows make run`. VS Code opens the workspace and prints the two commands for its integrated terminals. Docker Compose is deferred until additional services are needed.
 
 For real pose processing, set `MEDIAPIPE_MODEL_PATH` to a compatible MediaPipe Pose Landmarker model asset. Without it, measurement requests return a clear `model_not_configured` error.
 

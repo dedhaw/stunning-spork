@@ -1,9 +1,9 @@
-import { render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup } from '@testing-library/react';
 
-afterEach(() => { cleanup(); vi.unstubAllGlobals(); vi.restoreAllMocks(); });
+afterEach(() => { cleanup(); vi.useRealTimers(); vi.unstubAllGlobals(); vi.restoreAllMocks(); });
 import { App, Result, getErrorMessage, requestMeasurement } from './main.jsx';
 
 describe('measurement app', () => {
@@ -18,6 +18,32 @@ describe('measurement app', () => {
     const user = userEvent.setup(); render(<App />);
     await user.click(screen.getByRole('button', { name: 'Allow camera' }));
     expect(screen.getByRole('alert')).toHaveTextContent('Camera access is not supported');
+  });
+
+  it('counts down, captures a preview, and advances from front to side', async () => {
+    vi.useFakeTimers();
+    const stream = { getTracks: () => [] };
+    vi.stubGlobal('navigator', { ...navigator, mediaDevices: { getUserMedia: vi.fn().mockResolvedValue(stream) } });
+    vi.stubGlobal('URL', { createObjectURL: vi.fn().mockReturnValue('blob:preview') });
+    vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue();
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({ drawImage: vi.fn() });
+    vi.spyOn(HTMLCanvasElement.prototype, 'toBlob').mockImplementation((callback) => callback(new Blob(['capture'], { type: 'image/jpeg' })));
+    render(<App />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Allow camera' }));
+    await act(async () => {});
+    const video = screen.getByLabelText('Live camera preview');
+    Object.defineProperty(video, 'videoWidth', { configurable: true, value: 640 });
+    fireEvent.loadedMetadata(video);
+    fireEvent.click(screen.getByRole('button', { name: 'Capture front' }));
+    expect(document.getElementById('status')).toHaveTextContent('Capturing front in 3');
+
+    await act(async () => { vi.advanceTimersByTime(2000); });
+    expect(document.getElementById('status')).toHaveTextContent('Capturing front in 1');
+    await act(async () => { vi.advanceTimersByTime(1000); });
+    expect(document.getElementById('status')).toHaveTextContent(/Front view captured/);
+    expect(screen.getByAltText('front view preview')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Capture side' })).toBeEnabled();
   });
 
   it('exposes accessible guidance and live camera status', () => {
