@@ -44,6 +44,11 @@ describe('measurement app', () => {
     expect(document.getElementById('status')).toHaveTextContent(/Front view captured/);
     expect(screen.getByAltText('front view preview')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Capture side' })).toBeEnabled();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Restart' }));
+    await act(async () => {});
+    expect(screen.getByRole('button', { name: 'Capture front' })).toBeInTheDocument();
+    expect(screen.queryByAltText('front view preview')).not.toBeInTheDocument();
   });
 
   it('exposes accessible guidance and live camera status', () => {
