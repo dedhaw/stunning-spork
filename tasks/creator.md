@@ -95,7 +95,7 @@ After the user approves task creation and parallel execution, run:
 make tasks-run
 ```
 
-This runs `tasks/run-task-agents.sh`, which starts one background `codex exec` process for each incomplete task without an existing claim, including the finalizer, with approximately one second between launches. Set `TASK_AGENT_DELAY` to override the delay when needed. Each process receives its task path and must perform the atomic claim itself. A task that is already complete or claimed is skipped, so rerunning the launcher does not intentionally duplicate active work.
+This runs `tasks/scripts/run-task-agents.sh`, which starts one background `codex exec` process for each incomplete task without an existing claim, including the finalizer, with approximately one second between launches. Set `TASK_AGENT_DELAY` to override the delay when needed. Each process receives its task path and must perform the atomic claim itself. A task that is already complete or claimed is skipped, so rerunning the launcher does not intentionally duplicate active work.
 
 Output is stored under temporary coordination paths:
 

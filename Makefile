@@ -22,7 +22,7 @@ run: setup
 test: setup
 	npm test
 	$(PYTHON_BIN) -m pytest
-	./scripts/test-run-task-agents.sh
+	./tasks/scripts/test-run-task-agents.sh
 
 tasks-run:
-	./tasks/run-task-agents.sh
+	./tasks/scripts/run-task-agents.sh

@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-repo_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+repo_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 fixture_dir="$(mktemp -d "${TMPDIR:-/tmp}/task-agents-test.XXXXXX")"
 trap 'rm -rf "$fixture_dir"' EXIT
 
@@ -44,7 +44,7 @@ TASK_RUN_DIR="$fixture_dir/runner" \
 CODEX_BIN="$fake_codex" \
 FAKE_CODEX_RECORD="$record_file" \
 TASK_AGENT_DELAY=1 \
-  "$repo_dir/tasks/run-task-agents.sh" >"$fixture_dir/launcher-output"
+  "$repo_dir/tasks/scripts/run-task-agents.sh" >"$fixture_dir/launcher-output"
 
 [[ "$(wc -l <"$record_file" | tr -d ' ')" == 2 ]]
 first_launch="$(sed -n '1s/ .*//p' "$record_file")"

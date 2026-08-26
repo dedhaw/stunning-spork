@@ -14,7 +14,7 @@ Before a clear `yes`, `approve`, or `proceed`, do not create task files, modify 
 
 ## Parallel background agents
 
-After explicit approval, `make tasks-run` may launch one background `codex exec` process per incomplete task, spacing process creation by approximately one second (`TASK_AGENT_DELAY` overrides the default). These processes are coordinated by task claims, not launch order:
+After explicit approval, `make tasks-run` runs `tasks/scripts/run-task-agents.sh` and may launch one background `codex exec` process per incomplete task, spacing process creation by approximately one second (`TASK_AGENT_DELAY` overrides the default). These processes are coordinated by task claims, not launch order:
 
 - The first process whose atomic claim-directory creation succeeds owns the task.
 - A process that finds an existing claim exits without editing.
