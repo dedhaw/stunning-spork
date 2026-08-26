@@ -10,7 +10,7 @@ If no task is available and the user requests substantial new work, do not imple
 Approve creating these tasks and implementing the plan?
 ```
 
-Before a clear `yes`, `approve`, or `proceed`, do not create task files, modify the board, claim a task, or edit source files. After approval, create the full task group—including the implementation tasks, `tasks/README.md`, and `tasks/TASK-999-finalize.md`—with unchecked granular checklists, then claim the highest-priority task. A small explicitly requested edit may bypass task generation; substantial feature or service work may not.
+Before a clear `yes`, `approve`, or `proceed`, do not create task files, modify the board, claim a task, or edit source files. After approval, the creator must create the full task group—including the implementation tasks, `tasks/README.md`, and `tasks/TASK-999-finalize.md`—with unchecked granular checklists, then run `make tasks-run`. The creator is orchestration-only and must not claim or implement an implementation task; each launched worker claims its assigned task atomically. A small explicitly requested edit may bypass task generation; substantial feature or service work may not.
 
 ## Parallel background agents
 

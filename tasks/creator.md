@@ -83,19 +83,19 @@ Approve creating these tasks and implementing the plan?
 
 Do not create task files, modify the task board, claim work, or edit source files before approval. A clear response such as `yes`, `approve`, or `proceed` authorizes task creation and implementation. A decline or changed request leaves the repository unchanged and returns to planning.
 
-After approval, create the complete task group in one operation: all implementation tasks, `tasks/README.md`, and the mandatory `tasks/TASK-999-finalize.md`. Ensure every new checklist is unchecked, dependencies are accurate, and each task references `tasks/task-handler.md`. Then claim the highest-priority incomplete task and begin implementation.
+After approval, create the complete task group in one operation: all implementation tasks, `tasks/README.md`, and the mandatory `tasks/TASK-999-finalize.md`. Ensure every new checklist is unchecked, dependencies are accurate, and each task references `tasks/task-handler.md`. The creator is an orchestrator and must not claim or implement any task itself. Immediately run `make tasks-run` so every incomplete, unclaimed task receives its own worker Terminal session. After launching, monitor `tasks/logs/`, `tasks/runner/`, and `tasks/claims/` rather than editing implementation files.
 
 An explicitly requested small edit may be performed directly when it does not require a task group. Treat requests involving a new service, feature, architectural change, or multiple files as substantial and require this approval gate.
 
 ### Launching parallel agents
 
-After the user approves task creation and parallel execution, run:
+After the user approves task creation, run:
 
 ```bash
 make tasks-run
 ```
 
-This runs `tasks/scripts/run-task-agents.sh`, which opens one macOS Terminal session running a `codex exec` process for each incomplete task without an existing claim, including the finalizer, with approximately one second between launches. Set `TASK_AGENT_DELAY` to override the delay when needed. Each process receives its task path and must perform the atomic claim itself. A task that is already complete or claimed is skipped, so rerunning the launcher does not intentionally duplicate active work.
+This runs `tasks/scripts/run-task-agents.sh`, which opens one macOS Terminal session running a `codex exec` process for each incomplete task without an existing claim, including the finalizer, with approximately one second between launches. Set `TASK_AGENT_DELAY` to override the delay when needed. Each process receives its task path and must perform the atomic claim itself. A task that is already complete or claimed is skipped, so rerunning the launcher does not intentionally duplicate active work. The creator must run this before claiming any implementation task and must not implement task work in its own session.
 
 Output is stored under temporary coordination paths:
 

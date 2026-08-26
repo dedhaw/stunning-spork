@@ -60,13 +60,15 @@ If the user gives a new substantial implementation request, do not implement it 
 Approve creating these tasks and implementing the plan?
 ```
 
-Wait for clear approval before creating task files or changing source files. On approval, create all implementation tasks, `tasks/README.md`, and the mandatory `tasks/TASK-999-finalize.md` with unchecked checklists, then claim the highest-priority task and begin. If the user declines or changes the request, make no changes and continue planning.
+Wait for clear approval before creating task files or changing source files. On approval, the creator must create all implementation tasks, `tasks/README.md`, and the mandatory `tasks/TASK-999-finalize.md` with unchecked checklists, then immediately run `make tasks-run`. The creator must not claim or implement an implementation task itself; launched workers claim their own tasks atomically. If the user declines or changes the request, make no changes and continue planning.
 
 If the user explicitly asks for a small edit, perform only that requested edit. Destructive cleanup requires a finalizer task.
 
 When a task group has been approved for parallel execution, the repository launcher may start one `codex exec` process per incomplete, unclaimed task. Each process still follows this initialization protocol and must win its own atomic claim before editing. Do not assume that being launched means ownership.
 
 ## 6. Reporting
+
+The task-group creator reports the launch result and monitors worker logs/claims; it does not report an implementation claim for itself.
 
 Report one of:
 
