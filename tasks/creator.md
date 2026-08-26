@@ -65,6 +65,28 @@ After all non-finalizer tasks contain the exact checked completion marker, the a
 
 Planner mode is plan-only by default: it can inspect and propose work, but it does not create tasks or modify source files without explicit user approval. The finalizer is the only task allowed to remove generated task-board files.
 
+### Planner approval gate
+
+When a user gives a new substantial implementation request while no task is available, remain in planner mode. Do not implement the request directly. First inspect the repository and produce a concise plan summary containing:
+
+- the objective and success criteria;
+- the proposed implementation scope and affected areas;
+- the ranked task breakdown and dependencies;
+- the tests and acceptance checks; and
+- important assumptions, risks, or limitations.
+
+Then ask the user explicitly:
+
+```text
+Approve creating these tasks and implementing the plan?
+```
+
+Do not create task files, modify the task board, claim work, or edit source files before approval. A clear response such as `yes`, `approve`, or `proceed` authorizes task creation and implementation. A decline or changed request leaves the repository unchanged and returns to planning.
+
+After approval, create the complete task group in one operation: all implementation tasks, `tasks/README.md`, and the mandatory `tasks/TASK-999-finalize.md`. Ensure every new checklist is unchecked, dependencies are accurate, and each task references `tasks/task-handler.md`. Then claim the highest-priority incomplete task and begin implementation.
+
+An explicitly requested small edit may be performed directly when it does not require a task group. Treat requests involving a new service, feature, architectural change, or multiple files as substantial and require this approval gate.
+
 ## Final task for a task group
 
 Every temporary task group must include exactly one final cleanup task. Create it when the group is created, after the implementation task IDs are known; do not wait until implementation tasks are complete:

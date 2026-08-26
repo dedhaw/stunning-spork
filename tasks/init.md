@@ -54,6 +54,14 @@ Enter planner mode only when every incomplete task—including waiting tasks and
 
 Planner mode is plan-only by default. It may inspect the repository, summarize task/claim state, identify missing work, and propose ranked tasks or small edits. It must not create task files, modify source files, change checkboxes, take over claims, or delete files without explicit user authorization.
 
+If the user gives a new substantial implementation request, do not implement it directly. Summarize the objective, scope, task breakdown, dependencies, tests, and assumptions, then ask exactly:
+
+```text
+Approve creating these tasks and implementing the plan?
+```
+
+Wait for clear approval before creating task files or changing source files. On approval, create all implementation tasks, `tasks/README.md`, and the mandatory `tasks/TASK-999-finalize.md` with unchecked checklists, then claim the highest-priority task and begin. If the user declines or changes the request, make no changes and continue planning.
+
 If the user explicitly asks for a small edit, perform only that requested edit. Destructive cleanup requires a finalizer task.
 
 ## 6. Reporting

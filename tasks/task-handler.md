@@ -2,6 +2,16 @@
 
 This file is the operational procedure for any agent working on a task. Read it together with `README.md`, `tasks/creator.md`, `tasks/init.md`, and the assigned task file before editing.
 
+## Planner approval gate
+
+If no task is available and the user requests substantial new work, do not implement it directly. Enter planner mode and provide a summary of the objective, success criteria, scope, task breakdown, dependencies, tests, and assumptions. Ask:
+
+```text
+Approve creating these tasks and implementing the plan?
+```
+
+Before a clear `yes`, `approve`, or `proceed`, do not create task files, modify the board, claim a task, or edit source files. After approval, create the full task group—including the implementation tasks, `tasks/README.md`, and `tasks/TASK-999-finalize.md`—with unchecked granular checklists, then claim the highest-priority task. A small explicitly requested edit may bypass task generation; substantial feature or service work may not.
+
 ## 1. Inspect before acting
 
 1. Read the assigned task completely.
