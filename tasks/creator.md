@@ -1,6 +1,6 @@
 # Task Creator and Agent Execution Guide
 
-This file defines how Codex task files are created and how agents must execute them. Read the root [`README.md`](../README.md) and [`tasks/README.md`](README.md) before creating or running tasks.
+This file defines how Codex task files are created and how agents must execute them. Read the root [`README.md`](../README.md), [`tasks/init.md`](init.md), and [`tasks/README.md`](README.md) before creating or running tasks. `tasks/init.md` is the startup protocol for an unassigned Codex session.
 
 ## Creating a task
 
@@ -21,6 +21,8 @@ Every task must include:
 - Test and acceptance requirements.
 - Completion checkboxes.
 - Instructions to update only the task’s own status.
+- Instructions to claim the task before editing implementation files.
+- Ownership and heartbeat metadata requirements.
 
 New tasks must always begin with unchecked completion boxes. Never pre-check a task because implementation already exists elsewhere in the repository.
 
@@ -32,6 +34,26 @@ New tasks must always begin with unchecked completion boxes. Never pre-check a t
 ```
 
 Add the task to `tasks/README.md`, including its rank and dependencies. Keep the dependency graph accurate.
+
+## Claims and ownership
+
+Agents must claim a task before modifying implementation files. Claims use an atomic task-specific directory:
+
+```text
+tasks/claims/TASK-NNN/
+```
+
+The claim contains `owner.md` with a unique agent ID, task ID, hostname/terminal when available, start time, last heartbeat, and status (`claimed`, `working`, `waiting`, or `complete`). If the claim already exists, the agent must not modify that task.
+
+Agents update their heartbeat while working or waiting. Use a 30-minute stale-claim threshold only after verifying that the owner is no longer active; never take over an active claim. A completed agent checks its own task marker first, marks its claim complete, and releases only its own claim.
+
+The task board and claims are temporary coordination artifacts and remain covered by the repository’s existing `tasks/*` ignore rule.
+
+## Startup and planner behavior
+
+Every repository should keep `tasks/init.md` as the startup protocol and root `AGENTS.md` as the automatic entry point. An unassigned agent must inspect the task board, select the lowest-priority available task, atomically claim it, and implement it. If no task is available, it enters planner mode.
+
+Planner mode is plan-only by default: it can inspect and propose work, but it does not create tasks or modify source files without explicit user approval. The finalizer is the only task allowed to remove generated task-board files.
 
 ## Final task for a task group
 
@@ -91,6 +113,10 @@ You may be assigned this task by saying:
 ```text
 Do tasks/TASK-NNN-short-description.md
 ```
+
+Before editing, atomically claim `tasks/claims/TASK-NNN/` and write `owner.md` with the agent ID, task ID, start time, heartbeat time, and status.
+
+If any dependency is incomplete, set the claim status to `waiting` and do not stop. Use a persistent polling session that re-reads each dependency every 15 seconds until every dependency contains `- [x] Done with implementation and testing`. Do not return a blocked response after one check.
 
 ```
 
