@@ -87,6 +87,23 @@ After approval, create the complete task group in one operation: all implementat
 
 An explicitly requested small edit may be performed directly when it does not require a task group. Treat requests involving a new service, feature, architectural change, or multiple files as substantial and require this approval gate.
 
+### Launching parallel agents
+
+After the user approves task creation and parallel execution, run:
+
+```bash
+make tasks-run
+```
+
+This runs `tasks/run-task-agents.sh`, which starts one background `codex exec` process for each incomplete task without an existing claim, including the finalizer, with approximately one second between launches. Set `TASK_AGENT_DELAY` to override the delay when needed. Each process receives its task path and must perform the atomic claim itself. A task that is already complete or claimed is skipped, so rerunning the launcher does not intentionally duplicate active work.
+
+Output is stored under temporary coordination paths:
+
+- `tasks/logs/TASK-NNN-*.log` contains each agent’s output.
+- `tasks/runner/TASK-NNN-*.pid` contains each process ID.
+
+Inspect logs and claim records to monitor progress. Stop a process only after confirming its PID from the matching PID file. The launcher never deletes tasks or claims.
+
 ## Final task for a task group
 
 Every temporary task group must include exactly one final cleanup task. Create it when the group is created, after the implementation task IDs are known; do not wait until implementation tasks are complete:

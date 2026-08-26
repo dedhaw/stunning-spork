@@ -4,7 +4,7 @@ PIP := $(VENV)/bin/pip
 PYTHON_BIN := $(VENV)/bin/python
 UVICORN := $(VENV)/bin/uvicorn
 
-.PHONY: setup run build test
+.PHONY: setup run build test tasks-run
 
 setup:
 	$(PYTHON) -m venv $(VENV)
@@ -22,3 +22,7 @@ run: setup
 test: setup
 	npm test
 	$(PYTHON_BIN) -m pytest
+	./scripts/test-run-task-agents.sh
+
+tasks-run:
+	./tasks/run-task-agents.sh

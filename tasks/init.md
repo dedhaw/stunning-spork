@@ -64,6 +64,8 @@ Wait for clear approval before creating task files or changing source files. On 
 
 If the user explicitly asks for a small edit, perform only that requested edit. Destructive cleanup requires a finalizer task.
 
+When a task group has been approved for parallel execution, the repository launcher may start one `codex exec` process per incomplete, unclaimed task. Each process still follows this initialization protocol and must win its own atomic claim before editing. Do not assume that being launched means ownership.
+
 ## 6. Reporting
 
 Report one of:

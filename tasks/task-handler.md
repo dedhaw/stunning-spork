@@ -12,6 +12,18 @@ Approve creating these tasks and implementing the plan?
 
 Before a clear `yes`, `approve`, or `proceed`, do not create task files, modify the board, claim a task, or edit source files. After approval, create the full task group—including the implementation tasks, `tasks/README.md`, and `tasks/TASK-999-finalize.md`—with unchecked granular checklists, then claim the highest-priority task. A small explicitly requested edit may bypass task generation; substantial feature or service work may not.
 
+## Parallel background agents
+
+After explicit approval, `make tasks-run` may launch one background `codex exec` process per incomplete task, spacing process creation by approximately one second (`TASK_AGENT_DELAY` overrides the default). These processes are coordinated by task claims, not launch order:
+
+- The first process whose atomic claim-directory creation succeeds owns the task.
+- A process that finds an existing claim exits without editing.
+- Dependent processes claim their own tasks and remain in persistent polling.
+- The finalizer may launch immediately and must wait for all dependencies.
+- Each process writes output to its task log and records its PID under `tasks/runner/`.
+
+Rerunning the launcher is safe for complete or already-claimed tasks because they are skipped. Do not manually edit another agent’s claim or kill a process without verifying the PID and owner record.
+
 ## 1. Inspect before acting
 
 1. Read the assigned task completely.

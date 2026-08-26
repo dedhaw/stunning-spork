@@ -67,3 +67,5 @@ The same versioned API and measurement engine can later support a native Swift c
 Implementation work is split into ranked, dependency-aware tasks in [`tasks/README.md`](tasks/README.md). Every agent must read this README and its assigned task file. Dependent agents wait until the dependency file contains the checked completion marker.
 
 Agents should run `make test` after implementation, preserve unrelated working-tree changes, and update only the checkboxes in their assigned task file. A task is complete only when implementation, tests, and any required documentation are complete and the final `Done with implementation and testing` marker is checked.
+
+After approving a generated task plan, run `make tasks-run` to launch one background `codex exec` agent per incomplete, unclaimed task. Agents start about one second apart by default (`TASK_AGENT_DELAY` can override the delay), while each agent still claims its own task atomically and waits for dependencies. Output is written to `tasks/logs/`; PID files are written to `tasks/runner/`; claims and runtime files are temporary coordination artifacts.
