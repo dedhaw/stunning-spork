@@ -13,7 +13,7 @@ Open http://localhost:8000. `make setup` creates `.venv` and installs `backend/r
 
 For real pose processing, set `MEDIAPIPE_MODEL_PATH` to a compatible MediaPipe Pose Landmarker model asset. Without it, measurement requests return a clear `model_not_configured` error.
 
-The development server binds to `127.0.0.1:8000`; camera access works on `localhost` or over HTTPS. Run `make test` to execute the backend test suite. `make setup` is idempotent and creates the local `.venv` used by the other commands.
+The development server binds to `127.0.0.1:8000`; camera access works on `localhost` or over HTTPS. The frontend is a React application bundled by Vite. `make setup` installs JavaScript dependencies and builds the bundle into `web/`, where FastAPI serves it at `/` and `/static/`. Use `npm run dev` for frontend-only development, `npm run build` to rebuild production assets, and `npm test` for frontend component tests. `make test` runs both frontend and backend tests. `make setup` is idempotent and creates the local `.venv` used by the other commands.
 
 ## Architecture
 
@@ -22,6 +22,8 @@ The browser requests camera permission, shows a live preview, and captures two i
 The capture instructions require a stable surface or tripod, a level camera around waist/chest height, enough distance for head and feet to fit, fitted clothing, and an arm held slightly away from the torso. Height calibrates pixels to centimeters; it does not correct camera pitch, so framing and level guidance remain necessary.
 
 The web client uses `getUserMedia`, `<video>`, and `<canvas>`. Camera access requires HTTPS or `localhost` and user permission. The backend uses FastAPI, Pydantic, multipart `UploadFile`, MediaPipe Pose Landmarker behind an adapter, OpenCV/Pillow, NumPy, and Pytest.
+
+The React/Vite frontend can be installed with `npm install`, run with `npm run dev`, built with `npm run build`, and tested with `npm test`. The build writes the compiled client to `web/`, preserving FastAPI's static-serving contract. `make test` runs the backend suite and the frontend build/test checks.
 
 ## API
 
