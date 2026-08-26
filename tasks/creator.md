@@ -1,6 +1,6 @@
 # Task Creator and Agent Execution Guide
 
-This file defines how Codex task files are created and how agents must execute them. Read the root [`README.md`](../README.md), [`tasks/init.md`](init.md), and [`tasks/README.md`](README.md) before creating or running tasks. `tasks/init.md` is the startup protocol for an unassigned Codex session.
+This file defines how Codex task files are created and how agents must execute them. Read the root [`README.md`](../README.md), [`tasks/init.md`](init.md), [`tasks/task-handler.md`](task-handler.md), and [`tasks/README.md`](README.md) before creating or running tasks. `tasks/init.md` is the startup protocol for an unassigned Codex session; `tasks/task-handler.md` is the execution and recovery procedure.
 
 ## Creating a task
 
@@ -17,12 +17,14 @@ Every task must include:
 - A numeric priority/rank.
 - An explicit dependency list, or `None`.
 - A link/instruction to read `README.md`.
+- An instruction to read and follow `tasks/task-handler.md`.
 - Implementation requirements.
 - Test and acceptance requirements.
 - Completion checkboxes.
 - Instructions to update only the task’s own status.
 - Instructions to claim the task before editing implementation files.
 - Ownership and heartbeat metadata requirements.
+- A granular checklist for every implementation, test, and documentation item.
 
 New tasks must always begin with unchecked completion boxes. Never pre-check a task because implementation already exists elsewhere in the repository.
 
@@ -45,9 +47,11 @@ Agents must claim a task before modifying implementation files. Claims use an at
 tasks/claims/TASK-NNN/
 ```
 
-The claim contains `owner.md` with a unique agent ID, task ID, hostname/terminal when available, start time, last heartbeat, and status (`claimed`, `working`, `waiting`, or `complete`). The agent ID must be unique to the Codex invocation; hostname and terminal are descriptive metadata only and cannot establish ownership.
+The claim contains `owner.md` with a unique agent ID, task ID, hostname/terminal when available, start time, last heartbeat, status (`claimed`, `working`, `waiting`, `complete`, or `stale`), and a short `progress` summary. The agent ID must be unique to the Codex invocation; hostname and terminal are descriptive metadata only and cannot establish ownership.
 
-If the claim directory already exists, the agent must read `owner.md`. It may continue only when the recorded unique agent ID exactly matches its own invocation ID. Otherwise it must leave the task untouched and inspect another task. Never infer ownership from matching hostname, terminal, or working directory.
+Claim creation is the ownership lock. The invocation must atomically create the task directory before writing `owner.md`; only the invocation whose `mkdir` succeeds may work on that task. If the claim directory already exists, the agent must not continue it, rewrite it, or infer ownership from matching hostname, terminal, working directory, or agent-ID text. It must leave the task untouched and inspect another unclaimed task.
+
+An interrupted task may be recovered only when the recorded status is not `complete`, the heartbeat is older than 30 minutes, and the owner has been verified inactive (no live matching process/session). The recovering agent must record the recovery evidence, preserve the existing owner record, acquire a recovery lock atomically, and then create a new unique claim ID. Never take over a fresh or active claim. The recovery agent begins with the first unchecked granular item and must not redo checked items unless verification shows they are invalid.
 
 Agents update their heartbeat while working or waiting. Use a 30-minute stale-claim threshold only after verifying that the owner is no longer active; never take over an active claim. A completed agent checks its own task marker first, marks its claim complete, and releases only its own claim.
 
@@ -55,7 +59,7 @@ The task board and claims are temporary coordination artifacts and remain covere
 
 ## Startup and planner behavior
 
-Every repository should keep `tasks/init.md` as the startup protocol and root `AGENTS.md` as the automatic entry point. An unassigned agent must inspect the task board, reconcile task status from task checkboxes and claims, select the lowest-priority available task, atomically claim it, and implement it.
+Every repository should keep `tasks/init.md` as the startup protocol and root `AGENTS.md` as the automatic entry point. An unassigned agent must inspect the task board, reconcile task status from task checkboxes and claims, select the lowest-priority incomplete and unclaimed task, atomically claim it, and either implement it or wait for its dependencies.
 
 After all non-finalizer tasks contain the exact checked completion marker, the agent must select the finalizer before entering planner mode. A task-group creator must create the finalizer at the same time as the implementation tasks so the one-task case is covered.
 
@@ -113,7 +117,7 @@ Copy and adapt this template for new tasks:
 Priority: N
 Dependencies: None
 
-Read `README.md` and `tasks/README.md` first.
+Read `README.md`, `tasks/README.md`, and `tasks/task-handler.md` first and follow the task-handler procedure.
 
 ## Agent instructions
 
@@ -123,9 +127,11 @@ You may be assigned this task by saying:
 Do tasks/TASK-NNN-short-description.md
 ```
 
-Before editing, atomically claim `tasks/claims/TASK-NNN/` and write `owner.md` with the agent ID, task ID, start time, heartbeat time, and status.
+Before editing, read and follow `tasks/task-handler.md`, atomically claim `tasks/claims/TASK-NNN/`, and write `owner.md` with the agent ID, task ID, start time, heartbeat time, status, and progress.
 
 If any dependency is incomplete, set the claim status to `waiting` and do not stop. Use a persistent polling session that re-reads each dependency every 15 seconds until every dependency contains `- [x] Done with implementation and testing`. Do not return a blocked response after one check.
+
+Mark every implementation, test, and documentation item as an individual checkbox. Check each item immediately after its work and verification pass, and update the claim `progress` field. Leave unfinished items unchecked for recovery agents.
 
 ```
 
@@ -139,7 +145,7 @@ Use this template for the cleanup task at the end of a temporary task group:
 Priority: 999
 Dependencies: TASK-001, TASK-002, TASK-003
 
-Read `README.md`, `tasks/README.md`, and `tasks/creator.md` first.
+Read `README.md`, `tasks/README.md`, `tasks/creator.md`, and `tasks/task-handler.md` first and follow the task-handler procedure.
 
 ## Agent instructions
 
@@ -171,13 +177,13 @@ If this task is already checked complete, audit the implementation and tests aga
 
 ## Implementation requirements
 
-- Requirement one.
-- Requirement two.
+- [ ] Requirement one.
+- [ ] Requirement two.
 
 ## Tests and acceptance
 
-- Test scenario one.
-- Test scenario two.
+- [ ] Test scenario one.
+- [ ] Test scenario two.
 
 ## Completion checklist
 
